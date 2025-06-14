@@ -10,5 +10,8 @@
     "desktopCapture",
     "storage",
     "notifications"
-  ]
+  ],
+  "background": {
+    "scripts": ["popup.js"]
+  }
 }

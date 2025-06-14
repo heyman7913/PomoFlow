@@ -1,0 +1,289 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    background: transparent;
+    color: inherit;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    width: 380px;
+    height: 580px;
+    overflow: hidden;
+    position: relative;
+    margin: 0;
+    padding: 0;
+}
+
+body::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 70% 80%, rgba(255, 255, 255, 0.05) 0%, transparent 50%);
+    pointer-events: none;
+}
+
+.main {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 25px;
+    box-shadow:
+        0 25px 50px rgba(0, 0, 0, 0.15),
+        0 0 0 1px rgba(255, 255, 255, 0.2);
+    padding: 25px;
+    text-align: center;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+    overflow: hidden;
+}
+
+.timer-circle {
+    position: relative;
+    width: 180px;
+    height: 180px;
+    margin: 15px auto;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    font-weight: 700;
+    color: #2c3e50;
+    background: linear-gradient(135deg, #ff6b6b, #ffa500);
+    box-shadow:
+        0 15px 35px rgba(255, 107, 107, 0.3),
+        inset 0 -4px 8px rgba(0, 0, 0, 0.1),
+        inset 0 4px 8px rgba(255, 255, 255, 0.2);
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    transition: all 0.3s ease;
+}
+
+.timer-circle.running {
+    background: linear-gradient(135deg, #4ecdc4, #44a08d);
+    box-shadow:
+        0 15px 35px rgba(78, 205, 196, 0.4),
+        inset 0 -4px 8px rgba(0, 0, 0, 0.1),
+        inset 0 4px 8px rgba(255, 255, 255, 0.2);
+    animation: pulse 2s ease-in-out infinite;
+}
+
+.timer-circle.paused {
+    background: linear-gradient(135deg, #f7b731, #f39c12);
+    box-shadow:
+        0 15px 35px rgba(247, 183, 49, 0.4),
+        inset 0 -4px 8px rgba(0, 0, 0, 0.1),
+        inset 0 4px 8px rgba(255, 255, 255, 0.2);
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+}
+
+.control-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin: 25px 0;
+}
+
+.control-buttons button {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 25px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    position: relative;
+    overflow: hidden;
+}
+
+.control-buttons button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    transition: left 0.5s ease;
+}
+
+.control-buttons button:hover::before {
+    left: 100%;
+}
+
+.control-buttons button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 25px rgba(102, 126, 234, 0.4);
+}
+
+.control-buttons button:active {
+    transform: translateY(0);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+}
+
+.control-buttons button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+.control-buttons button:disabled:hover {
+    transform: none !important;
+    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+}
+
+.time-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.time-control-group {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 15px;
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: 15px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    gap: 10px;
+}
+
+.time-label {
+    font-weight: 600;
+    color: #2c3e50;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    min-width: 80px;
+}
+
+.time-display {
+    font-weight: 700;
+    color: #667eea;
+    font-size: 16px;
+    min-width: 25px;
+}
+
+.arrow {
+    background: linear-gradient(135deg, #ff6b6b, #ffa500);
+    color: white;
+    border: none;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.arrow:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 16px rgba(255, 107, 107, 0.4);
+}
+
+.arrow:active {
+    transform: scale(0.95);
+}
+
+.arrow.increment {
+    background: linear-gradient(135deg, #4ecdc4, #44a08d);
+    box-shadow: 0 4px 12px rgba(78, 205, 196, 0.3);
+}
+
+.arrow.increment:hover {
+    box-shadow: 0 6px 16px rgba(78, 205, 196, 0.4);
+}
+
+/* Status indicators */
+.status-indicator {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #95a5a6;
+    transition: all 0.3s ease;
+}
+
+.status-indicator.running {
+    background: #4ecdc4;
+    box-shadow: 0 0 10px rgba(78, 205, 196, 0.6);
+    animation: blink 1.5s ease-in-out infinite;
+}
+
+.status-indicator.paused {
+    background: #f39c12;
+    box-shadow: 0 0 10px rgba(243, 156, 18, 0.6);
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
+.mode-indicator {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    padding: 6px 12px;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #2c3e50;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Screen sharing indicator */
+.screen-share-indicator {
+    position: absolute;
+    top: 45px;
+    left: 15px;
+    padding: 4px 8px;
+    background: rgba(78, 205, 196, 0.9);
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 600;
+    color: white;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: none;
+    animation: screenSharePulse 2s ease-in-out infinite;
+}
+
+.screen-share-indicator.active {
+    display: block;
+}
+
+@keyframes screenSharePulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}

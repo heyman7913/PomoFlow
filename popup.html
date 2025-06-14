@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width,
+                   initial-scale=1.0">
+    <title>Pomodoro Timer</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+
+<body>    <div class="main">
+        <div class="status-indicator"></div>
+        <div class="mode-indicator">Study Time</div>
+        <div class="screen-share-indicator">🖥️ Screen Sharing</div>
+
+        <div class="timer-circle" id="timer">25:00</div>
+
+        <div class="control-buttons">
+            <button id="toggleStart">Start</button>
+            <button id="toggleRestart">Restart</button>
+        </div>
+
+        <div class="time-controls">
+            <div class="time-control-group">
+                <button class="arrow" id="decrementStudyTime">&#9664;</button>
+                <span class="time-display" id="study-time">25</span>
+                <span class="time-label">Study Time</span>
+                <button class="arrow increment" id="incrementStudyTime">&#9654;</button>
+            </div>
+
+            <div class="time-control-group">
+                <button class="arrow" id="decrementBreakTime">&#9664;</button>
+                <span class="time-display" id="break-time">5</span>
+                <span class="time-label">Break Time</span>
+                <button class="arrow increment" id="incrementBreakTime">&#9654;</button>
+            </div>
+        </div>
+    </div>
+    <script src="popup.js"></script>
+</body>
+</html>
