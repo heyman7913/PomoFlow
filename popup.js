@@ -9,6 +9,8 @@ let currentMode = 'study';
 let mediaStream = null; // Store the screen sharing stream
 
 
+
+// Ensuring that the popup initializes correctly
 document.addEventListener('DOMContentLoaded', function() {
     initPopup();
 });
@@ -26,7 +28,6 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', handleTabClick);
 });
 
-
 function handleTabClick(event) {
     const currentTab = document.querySelector('.tab-btn.active');
     const targetTab = event.currentTarget;
@@ -41,6 +42,96 @@ function handleTabClick(event) {
     targetTab.classList.add('active');
     const targetTabId = 'tab-' + targetTab.dataset.tab;
     document.getElementById(targetTabId).style.display = 'block';
+}
+
+// Function for getting the current study time from local storage (with callback)
+function getCurrentStudyTime(callback) {
+    chrome.storage.local.get(['studyTime'], function(result) {
+        let studyTime = 25; // Default value
+        if (result.studyTime !== undefined) {
+            studyTime = result.studyTime;
+        }
+        callback(studyTime);
+    });
+}
+
+// Function for setting the current study time to local storage
+function setCurrentStudyTime(studyTime) {
+    chrome.storage.local.set({studyTime: studyTime }, function() {
+        console.log('Study time set to:', studyTime);
+    });
+}
+
+// Study and break time adjustment functions
+const studyTimeIncrement = document.getElementById('incrementStudyTime');
+studyTimeIncrement.addEventListener('click', incrementStudyTime);
+
+function incrementStudyTime() {
+    if (!isRunning) {
+        getCurrentStudyTime(function(studyTime) {
+            if (studyTime < 60) {
+                const newStudyTime = studyTime + 5;
+                setCurrentStudyTime(newStudyTime);
+                document.getElementById('study-time').textContent = newStudyTime;
+
+                // Update current timer if in study mode
+                if (!isBreakTime) {
+                    timeLeft = newStudyTime * 60;
+                    updateDisplay();
+                }
+            }
+        });
+    }
+}
+
+
+
+function decrementStudyTime() {
+    if (!isRunning) {
+        const studyTimeElement = document.getElementById('study-time');
+        let currentTime = parseInt(studyTimeElement.textContent);
+        if (currentTime > 5) {
+            studyTimeElement.textContent = currentTime - 5;
+
+            // Update current timer if in study mode
+            if (!isBreakTime) {
+                timeLeft = (currentTime - 5) * 60;
+                updateDisplay();
+            }
+        }
+    }
+}
+
+function incrementBreakTime() {
+    if (!isRunning) {
+        const breakTimeElement = document.getElementById('break-time');
+        let currentTime = parseInt(breakTimeElement.textContent);
+        if (currentTime < 30) {
+            breakTimeElement.textContent = currentTime + 1;
+
+            // Update current timer if in break mode
+            if (isBreakTime) {
+                timeLeft = (currentTime + 1) * 60;
+                updateDisplay();
+            }
+        }
+    }
+}
+
+function decrementBreakTime() {
+    if (!isRunning) {
+        const breakTimeElement = document.getElementById('break-time');
+        let currentTime = parseInt(breakTimeElement.textContent);
+        if (currentTime > 1) {
+            breakTimeElement.textContent = currentTime - 1;
+
+            // Update current timer if in break mode
+            if (isBreakTime) {
+                timeLeft = (currentTime - 1) * 60;
+                updateDisplay();
+            }
+        }
+    }
 }
 
 
@@ -79,6 +170,8 @@ startTimer.addEventListener('click', (e) => {
         }, 1000);
     }
 });
+
+
 
 // Initialize the timer display
 function updateDisplay() {
@@ -218,84 +311,3 @@ function restartTimer() {
     pauseButton.textContent = 'Start';
 }
 
-// Study and break time adjustment functions
-function incrementStudyTime() {
-    if (!isRunning) {
-        const studyTimeElement = document.getElementById('study-time');
-        let currentTime = parseInt(studyTimeElement.textContent);
-        if (currentTime < 60) {
-            studyTimeElement.textContent = currentTime + 5;
-
-            // Update current timer if in study mode
-            if (!isBreakTime) {
-                timeLeft = (currentTime + 5) * 60;
-                updateDisplay();
-            }
-        }
-    }
-}
-
-function decrementStudyTime() {
-    if (!isRunning) {
-        const studyTimeElement = document.getElementById('study-time');
-        let currentTime = parseInt(studyTimeElement.textContent);
-        if (currentTime > 5) {
-            studyTimeElement.textContent = currentTime - 5;
-
-            // Update current timer if in study mode
-            if (!isBreakTime) {
-                timeLeft = (currentTime - 5) * 60;
-                updateDisplay();
-            }
-        }
-    }
-}
-
-function incrementBreakTime() {
-    if (!isRunning) {
-        const breakTimeElement = document.getElementById('break-time');
-        let currentTime = parseInt(breakTimeElement.textContent);
-        if (currentTime < 30) {
-            breakTimeElement.textContent = currentTime + 1;
-
-            // Update current timer if in break mode
-            if (isBreakTime) {
-                timeLeft = (currentTime + 1) * 60;
-                updateDisplay();
-            }
-        }
-    }
-}
-
-function decrementBreakTime() {
-    if (!isRunning) {
-        const breakTimeElement = document.getElementById('break-time');
-        let currentTime = parseInt(breakTimeElement.textContent);
-        if (currentTime > 1) {
-            breakTimeElement.textContent = currentTime - 1;
-
-            // Update current timer if in break mode
-            if (isBreakTime) {
-                timeLeft = (currentTime - 1) * 60;
-                updateDisplay();
-            }
-        }
-    }
-}
-
-// Initialize display when popup loads
-// document.addEventListener('DOMContentLoaded', function) {
-//     // Initialize timer based on current study time
-//     const studyMinutes = parseInt(document.getElementById('study-time').textContent);
-//     timeLeft = studyMinutes * 60;
-
-//     updateDisplay();
-//     updateStatus();
-
-//     // Request notification permission
-//     requestNotificationPermission();
-
-//     // Set initial button text
-//     const pauseButton = document.querySelector('.control-buttons button:first-child');
-//     pauseButton.textContent = 'Start';
-// };
