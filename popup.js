@@ -8,6 +8,28 @@ let isBreakTime = false;
 let currentMode = 'study';
 let mediaStream = null; // Store the screen sharing stream
 
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', handleTabClick);
+});
+
+
+function handleTabClick(event) {
+    const currentTab = document.querySelector('.tab-btn.active');
+    const targetTab = event.currentTarget;
+    if (currentTab === targetTab) return;
+
+    if (currentTab) {
+        currentTab.classList.remove('active');
+        const currentTabId = 'tab-' + currentTab.dataset.tab;
+        document.getElementById(currentTabId).style.display = 'none';
+    }
+
+    targetTab.classList.add('active');
+    const targetTabId = 'tab-' + targetTab.dataset.tab;
+    document.getElementById(targetTabId).style.display = 'block';
+}
+
+
 
 const startTimer = document.getElementById("toggleStart");
 startTimer.addEventListener('click', (e) => {
@@ -43,67 +65,6 @@ startTimer.addEventListener('click', (e) => {
         }, 1000);
     }
 });
-
-
-// Screen sharing functionality
-async function requestScreenShare() {
-    try {
-        // Request screen sharing with both audio and video
-        const stream = await navigator.mediaDevices.getDisplayMedia({
-            video: {
-                mediaSource: 'screen',
-                width: { ideal: 1920 },
-                height: { ideal: 1080 }
-            },
-            audio: {
-                echoCancellation: true,
-                noiseSuppression: true,
-                sampleRate: 44100
-            }
-        });
-
-        mediaStream = stream;
-
-        // Show success message
-        showNotification('Screen sharing started!', 'Your screen is now being shared. Timer will start automatically.');
-
-        // Listen for when user stops sharing
-        stream.getVideoTracks()[0].addEventListener('ended', () => {
-            stopScreenShare();
-        });
-
-        return true;
-    } catch (error) {
-        console.error('Error requesting screen share:', error);
-
-        // Handle different error cases
-        if (error.name === 'NotAllowedError') {
-            showNotification('Screen sharing denied', 'Please allow screen sharing to use the Pomodoro timer.');
-        } else if (error.name === 'NotSupportedError') {
-            showNotification('Screen sharing not supported', 'Your browser doesn\'t support screen sharing.');
-        } else {
-            showNotification('Screen sharing error', 'Failed to start screen sharing. Please try again.');
-        }
-
-        return false;
-    }
-}
-
-function stopScreenShare() {
-    if (mediaStream) {
-        // Stop all tracks
-        mediaStream.getTracks().forEach(track => track.stop());
-        mediaStream = null;
-
-        // If timer is running, pause it
-        if (isRunning) {
-            pauseTimer();
-        }
-
-        showNotification('Screen sharing stopped', 'Screen sharing has ended.');
-    }
-}
-
 
 // Initialize the timer display
 function updateDisplay() {
@@ -309,18 +270,18 @@ function decrementBreakTime() {
 }
 
 // Initialize display when popup loads
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialize timer based on current study time
-    const studyMinutes = parseInt(document.getElementById('study-time').textContent);
-    timeLeft = studyMinutes * 60;
+// document.addEventListener('DOMContentLoaded', function) {
+//     // Initialize timer based on current study time
+//     const studyMinutes = parseInt(document.getElementById('study-time').textContent);
+//     timeLeft = studyMinutes * 60;
 
-    updateDisplay();
-    updateStatus();
+//     updateDisplay();
+//     updateStatus();
 
-    // Request notification permission
-    requestNotificationPermission();
+//     // Request notification permission
+//     requestNotificationPermission();
 
-    // Set initial button text
-    const pauseButton = document.querySelector('.control-buttons button:first-child');
-    pauseButton.textContent = 'Start';
-});
+//     // Set initial button text
+//     const pauseButton = document.querySelector('.control-buttons button:first-child');
+//     pauseButton.textContent = 'Start';
+// };
