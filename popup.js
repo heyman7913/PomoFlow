@@ -8,6 +8,20 @@ let isBreakTime = false;
 let currentMode = 'study';
 let mediaStream = null; // Store the screen sharing stream
 
+
+document.addEventListener('DOMContentLoaded', function() {
+    initPopup();
+});
+
+function initPopup() {
+    const studyTab = document.getElementById('tab-study');
+    if (studyTab) {
+        studyTab.classList.add('active');
+    }
+}
+
+
+// Navigation Logic for Tabs
 document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', handleTabClick);
 });
