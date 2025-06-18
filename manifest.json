@@ -9,7 +9,12 @@
   "permissions": [
     "desktopCapture",
     "storage",
-    "notifications"
+    "notifications",
+    "declarativeNetRequest"
+  ],
+  "host_permissions": [
+    "https://*/*",
+    "http://*/*"
   ],
   "background": {
     "scripts": ["popup.js"]

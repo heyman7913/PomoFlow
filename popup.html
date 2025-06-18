@@ -18,6 +18,7 @@
         <div class="main tab-content" id="tab-study">
             <div class="status-indicator"></div>
             <div class="mode-indicator">Study Time</div>
+
             <div class="timer-circle" id="timer"></div>
 
             <div class="control-buttons">
@@ -28,7 +29,7 @@
             <div class="time-controls">
                 <div class="time-control-group">
                     <button class="arrow" id="decrementStudyTime">&#9664;</button>
-                    <span class="time-display" id="study-time"></span>
+                    <span class="time-display" id="study-time">25</span>
                     <span class="time-label">Study Time</span>
                     <button class="arrow increment" id="incrementStudyTime">&#9654;</button>
                 </div>
@@ -43,19 +44,41 @@
         </div>
 
         <div class="main tab-content" id="tab-websiteAccess">
-            <h2>Website Access</h2>
-            <p>Manage your website access during study sessions.</p>
-            <div class="website-list">
-                <div class="website-item">
-                    <span class="website-name">Example.com</span>
-                    <button class="toggle-access" data-website="example.com">Allow</button>
-                </div>
-                <div class="website-item">
-                    <span class="website-name">AnotherSite.com</span>
-                    <button class="toggle-access" data-website="anothersite.com">Allow</button>
-                </div>
-            </div>
+    <h2>Website Access</h2>
+    <p>Manage your website access during study sessions.</p>
+
+    <!-- Allow List Section -->
+    <div class="website-section">
+        <div class="section-header">
+            <h3>Allow List</h3>
+            <button class="add-current-site-btn" id="add-to-allow-btn" title="Add current site to allow list">
+                <span class="plus-icon">+</span>
+            </button>
         </div>
+        <div class="website-list" id="allow-list">
+            <!-- Dynamic content will be inserted here -->
+        </div>
+        <div class="empty-state" id="allow-empty-state">
+            <p>No allowed websites. Click + to add the current site.</p>
+        </div>
+    </div>
+
+    <!-- Block List Section -->
+    <div class="website-section">
+        <div class="section-header">
+            <h3>Block List</h3>
+            <button class="add-current-site-btn" id="add-to-block-btn" title="Add current site to block list">
+                <span class="plus-icon">+</span>
+            </button>
+        </div>
+        <div class="website-list" id="block-list">
+            <!-- Dynamic content will be inserted here -->
+        </div>
+        <div class="empty-state" id="block-empty-state">
+            <p>No blocked websites. Click + to add the current site.</p>
+        </div>
+    </div>
+</div>
     <script src="popup.js"></script>
 </body>
 </html>
