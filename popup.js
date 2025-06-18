@@ -19,6 +19,29 @@ document.addEventListener('DOMContentLoaded', function() {
     getCurrentTabUrl();
     loadWebsiteLists();
     setupWebsiteAccessHandlers();
+    // Restore timer state on popup load
+    chrome.storage.local.get(['isRunning', 'isPaused', 'timeLeft', 'isBreakTime', 'currentMode', 'timerLastUpdated'], function(result) {
+        isRunning = result.isRunning || false;
+        isPaused = result.isPaused || false;
+        isBreakTime = result.isBreakTime || false;
+        currentMode = result.currentMode || 'study';
+        // If timeLeft is stored, adjust for elapsed time if running
+        if (typeof result.timeLeft === 'number') {
+            let elapsed = 0;
+            if (isRunning && result.timerLastUpdated) {
+                elapsed = Math.floor((Date.now() - result.timerLastUpdated) / 1000);
+            }
+            timeLeft = Math.max(0, result.timeLeft - elapsed);
+        } else {
+            // fallback to default
+            timeLeft = 25 * 60;
+        }
+        updateDisplay();
+        updateStatus();
+        if (isRunning && timeLeft > 0) {
+            startTimerInterval();
+        }
+    });
 });
 
 function initPopup() {
@@ -173,43 +196,137 @@ function decrementBreakTime() {
 }
 
 
+function saveTimerState() {
+    chrome.storage.local.set({
+        isRunning,
+        isPaused,
+        timeLeft,
+        isBreakTime,
+        currentMode,
+        timerLastUpdated: Date.now()
+    });
+}
 
-const startTimer = document.getElementById("toggleStart");
-startTimer.addEventListener('click', (e) => {
-    if (!isRunning) {
-        isRunning = true;
-        timer = setInterval(() => {
-            if (timeLeft > 0) {
-                timeLeft--;
-                updateDisplay();
-                updateStatus();
+// Timer interval logic separated for reuse
+function startTimerInterval() {
+    clearInterval(timer);
+    timer = setInterval(() => {
+        if (timeLeft > 0) {
+            timeLeft--;
+            updateDisplay();
+            updateStatus();
+            saveTimerState();
+        } else {
+            clearInterval(timer);
+            isRunning = false;
+            isPaused = false;
+            saveTimerState();
+            if (isBreakTime) {
+                showNotification('Break time is over!', 'Time to get back to work! 💪');
+                switchToStudyMode(function() {
+                    updateDisplay();
+                    updateStatus();
+                    saveTimerState();
+                });
             } else {
-                // Timer finished
-                clearInterval(timer);
-                isRunning = false;
-                isPaused = false;
-
-                // Switch modes and show notification
-                if (isBreakTime) {
-                    showNotification('Break time is over!', 'Time to get back to work! 💪');
-                    switchToStudyMode();
-                } else {
-                    showNotification('Study session complete!', 'Time for a well-deserved break! 🎉');
-                    switchToBreakMode();
-                }
-
-                updateDisplay();
-                updateStatus();
-
-                // Reset button text
-                const pauseButton = document.querySelector('.control-buttons button:first-child');
-                pauseButton.textContent = 'Start';
+                showNotification('Study session complete!', 'Time for a well-deserved break! 🎉');
+                switchToBreakMode(function() {
+                    updateDisplay();
+                    updateStatus();
+                    saveTimerState();
+                });
             }
-        }, 1000);
+            // Reset button text
+            const pauseButton = document.querySelector('.control-buttons button:first-child');
+            if (pauseButton) pauseButton.textContent = 'Start';
+        }
+    }, 1000);
+}
+
+// Start timer button logic
+const startTimerBtn = document.getElementById("toggleStart");
+startTimerBtn.addEventListener('click', (e) => {
+    if (!isRunning) {
+        // Always get current study/break time before starting
+        if (!isBreakTime) {
+            getCurrentStudyTime(function(studyTime) {
+                timeLeft = studyTime * 60;
+                isRunning = true;
+                isPaused = false;
+                saveTimerState();
+                startTimerInterval();
+            });
+        } else {
+            getCurrentBreakTime(function(breakTime) {
+                timeLeft = breakTime * 60;
+                isRunning = true;
+                isPaused = false;
+                saveTimerState();
+                startTimerInterval();
+            });
+        }
     }
 });
 
+// Switch to break mode (now async)
+function switchToBreakMode(callback) {
+    getCurrentBreakTime(function(breakTime) {
+        isBreakTime = true;
+        currentMode = 'break';
+        timeLeft = breakTime * 60;
+        isRunning = false;
+        isPaused = false;
+        saveTimerState();
+        if (callback) callback();
+    });
+}
 
+// Switch to study mode (now async)
+function switchToStudyMode(callback) {
+    getCurrentStudyTime(function(studyTime) {
+        isBreakTime = false;
+        currentMode = 'study';
+        timeLeft = studyTime * 60;
+        isRunning = false;
+        isPaused = false;
+        saveTimerState();
+        if (callback) callback();
+    });
+}
+
+// Pause timer
+function pauseTimer() {
+    clearInterval(timer);
+    isRunning = false;
+    isPaused = true;
+    saveTimerState();
+}
+
+// Restart the timer
+function restartTimer() {
+    clearInterval(timer);
+    isRunning = false;
+    isPaused = false;
+    stopScreenShare();
+    if (isBreakTime) {
+        getCurrentBreakTime(function(breakTime) {
+            timeLeft = breakTime * 60;
+            updateDisplay();
+            updateStatus();
+            saveTimerState();
+        });
+    } else {
+        getCurrentStudyTime(function(studyTime) {
+            timeLeft = studyTime * 60;
+            updateDisplay();
+            updateStatus();
+            saveTimerState();
+        });
+    }
+    // Reset button text
+    const pauseButton = document.querySelector('.control-buttons button:first-child');
+    if (pauseButton) pauseButton.textContent = 'Start';
+}
 
 // Initialize the timer display
 function updateDisplay() {
@@ -273,22 +390,6 @@ function updateStatus() {
     }
 }
 
-
-// Switch to break mode
-function switchToBreakMode() {
-    isBreakTime = true;
-    currentMode = 'break';
-    const breakMinutes = parseInt(document.getElementById('break-time').textContent);
-    timeLeft = breakMinutes * 60;
-}
-
-// Switch to study mode
-function switchToStudyMode() {
-    isBreakTime = false;
-    currentMode = 'study';
-    const studyMinutes = parseInt(document.getElementById('study-time').textContent);
-    timeLeft = studyMinutes * 60;
-}
 
 // Show notification
 function showNotification(title, message) {
