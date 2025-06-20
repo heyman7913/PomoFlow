@@ -302,12 +302,12 @@ function pauseTimer() {
     saveTimerState();
 }
 
-// Restart the timer
-function restartTimer() {
+
+const restartTimer = document.getElementById('toggleRestart');
+restartTimer.addEventListener('click', e => {
     clearInterval(timer);
     isRunning = false;
     isPaused = false;
-    stopScreenShare();
     if (isBreakTime) {
         getCurrentBreakTime(function(breakTime) {
             timeLeft = breakTime * 60;
@@ -326,7 +326,7 @@ function restartTimer() {
     // Reset button text
     const pauseButton = document.querySelector('.control-buttons button:first-child');
     if (pauseButton) pauseButton.textContent = 'Start';
-}
+});
 
 // Initialize the timer display
 function updateDisplay() {
@@ -411,70 +411,6 @@ function requestNotificationPermission() {
     }
 }
 
-// Pause/Resume toggle with screen sharing
-async function togglePauseResume() {
-    const button = event.target;
-
-    if (!isRunning && !isPaused) {
-        // Show screen sharing popup and start timer
-        button.textContent = 'Requesting...';
-        button.disabled = true;
-
-        const screenShareSuccess = await requestScreenShare();
-
-        if (screenShareSuccess) {
-            // Start timer only if screen sharing was successful
-            startTimer();
-            button.textContent = 'Pause';
-        } else {
-            button.textContent = 'Start';
-        }
-
-        button.disabled = false;
-    } else if (isRunning && !isPaused) {
-        // Pause timer
-        pauseTimer();
-        button.textContent = 'Resume';
-    } else if (isPaused) {
-        // Resume timer
-        startTimer();
-        isPaused = false;
-        button.textContent = 'Pause';
-    }
-}
-
-// Helper function to pause timer
-function pauseTimer() {
-    clearInterval(timer);
-    isRunning = false;
-    isPaused = true;
-}
-
-// Restart the timer
-function restartTimer() {
-    clearInterval(timer);
-    isRunning = false;
-    isPaused = false;
-
-    // Stop screen sharing if active
-    stopScreenShare();
-
-    // Reset to current study/break time setting
-    if (isBreakTime) {
-        const breakMinutes = parseInt(document.getElementById('break-time').textContent);
-        timeLeft = breakMinutes * 60;
-    } else {
-        const studyMinutes = parseInt(document.getElementById('study-time').textContent);
-        timeLeft = studyMinutes * 60;
-    }
-
-    updateDisplay();
-    updateStatus();
-
-    // Reset button text
-    const pauseButton = document.querySelector('.control-buttons button:first-child');
-    pauseButton.textContent = 'Start';
-}
 
 // Website management functions
 function getCurrentTabUrl() {
