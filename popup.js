@@ -243,11 +243,11 @@ function startTimerInterval() {
     }, 1000);
 }
 
-// Start timer button logic
+// Update start/pause button logic
 const startTimerBtn = document.getElementById("toggleStart");
 startTimerBtn.addEventListener('click', (e) => {
-    if (!isRunning) {
-        // Always get current study/break time before starting
+    if (!isRunning && !isPaused) {
+        // Start timer
         if (!isBreakTime) {
             getCurrentStudyTime(function(studyTime) {
                 timeLeft = studyTime * 60;
@@ -255,6 +255,7 @@ startTimerBtn.addEventListener('click', (e) => {
                 isPaused = false;
                 saveTimerState();
                 startTimerInterval();
+                updateStartButton();
             });
         } else {
             getCurrentBreakTime(function(breakTime) {
@@ -263,10 +264,38 @@ startTimerBtn.addEventListener('click', (e) => {
                 isPaused = false;
                 saveTimerState();
                 startTimerInterval();
+                updateStartButton();
             });
         }
+    } else if (isRunning) {
+        // Pause timer
+        pauseTimer();
+        updateStartButton();
+    } else if (isPaused) {
+        // Resume timer
+        isRunning = true;
+        isPaused = false;
+        startTimerInterval();
+        updateStartButton();
     }
 });
+
+function pauseTimer() {
+    clearInterval(timer);
+    isRunning = false;
+    isPaused = true;
+    saveTimerState();
+}
+
+function updateStartButton() {
+    const startBtn = document.getElementById('toggleStart');
+    if (!startBtn) return;
+    if (isRunning) {
+        startBtn.textContent = 'Pause';
+    } else {
+        startBtn.textContent = 'Start';
+    }
+}
 
 // Switch to break mode (now async)
 function switchToBreakMode(callback) {
