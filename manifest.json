@@ -17,6 +17,6 @@
     "http://*/*"
   ],
   "background": {
-    "scripts": ["popup.js"]
+    "scripts": ["background.js"]
   }
 }
