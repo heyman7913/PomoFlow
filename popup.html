@@ -2,83 +2,136 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport"
-          content="width=device-width,
-                   initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pomodoro Timer</title>
     <link rel="stylesheet" href="popup.css">
 </head>
 
 <body>
-        <div class="tabs">
-            <button class="tab-btn" data-tab="study">Study</button>
-            <button class="tab-btn" data-tab="websiteAccess">Website Access</button>
+    <!-- Main Content Pages -->
+    <div class="page active" id="page-timer">
+        <div class="status-indicator" id="statusIndicator"></div>
+        <div class="mode-indicator" id="modeIndicator">Study Time</div>
+
+        <div class="timer-circle" id="timerCircle">
+            <div id="timerDisplay">25:00</div>
         </div>
 
-        <div class="main tab-content" id="tab-study">
-            <div class="status-indicator"></div>
-            <div class="mode-indicator">Study Time</div>
+        <div id="statusText">Ready to start</div>
 
-            <div class="timer-circle" id="timer"></div>
+        <div class="control-buttons">
+            <button id="startPauseBtn">Start</button>
+            <button id="resetBtn">Reset</button>
+        </div>
 
-            <div class="control-buttons">
-                <button id="toggleStart">Start</button>
-                <button id="toggleRestart">Restart</button>
-            </div>
+        <div class="mode-buttons">
+            <button id="studyModeBtn" class="mode-btn active">Study</button>
+            <button id="shortBreakBtn" class="mode-btn">Short Break</button>
+            <button id="longBreakBtn" class="mode-btn">Long Break</button>
+        </div>
 
-            <div class="time-controls">
-                <div class="time-control-group">
-                    <button class="arrow" id="decrementStudyTime">&#9664;</button>
-                    <span class="time-display" id="study-time">25</span>
-                    <span class="time-label">Study Time</span>
-                    <button class="arrow increment" id="incrementStudyTime">&#9654;</button>
+        <!-- Time Selection Section -->
+        <div class="time-settings">
+            <h3>Time Settings</h3>
+            <div class="time-setting-row">
+                <label for="studyTimeInput">Study Time:</label>
+                <div class="time-input-group">
+                    <input type="number" id="studyTimeInput" min="1" max="120" value="25">
+                    <span class="time-unit">minutes</span>
                 </div>
-
-                <div class="time-control-group">
-                    <button class="arrow" id="decrementBreakTime">&#9664;</button>
-                    <span class="time-display" id="break-time">5</span>
-                    <span class="time-label">Break Time</span>
-                    <button class="arrow increment" id="incrementBreakTime">&#9654;</button>
+            </div>
+            <div class="time-setting-row">
+                <label for="shortBreakTimeInput">Short Break:</label>
+                <div class="time-input-group">
+                    <input type="number" id="shortBreakTimeInput" min="1" max="60" value="5">
+                    <span class="time-unit">minutes</span>
                 </div>
             </div>
-        </div>
-
-        <div class="main tab-content" id="tab-websiteAccess">
-    <h2>Website Access</h2>
-    <p>Manage your website access during study sessions.</p>
-
-    <!-- Allow List Section -->
-    <div class="website-section">
-        <div class="section-header">
-            <h3>Allow List</h3>
-            <button class="add-current-site-btn" id="add-to-allow-btn" title="Add current site to allow list">
-                <span class="plus-icon">+</span>
-            </button>
-        </div>
-        <div class="website-list" id="allow-list">
-            <!-- Dynamic content will be inserted here -->
-        </div>
-        <div class="empty-state" id="allow-empty-state">
-            <p>No allowed websites. Click + to add the current site.</p>
+            <div class="time-setting-row">
+                <label for="longBreakTimeInput">Long Break:</label>
+                <div class="time-input-group">
+                    <input type="number" id="longBreakTimeInput" min="1" max="60" value="15">
+                    <span class="time-unit">minutes</span>
+                </div>
+            </div>
+            <button id="saveTimeSettings" class="save-settings-btn">Save Settings</button>
         </div>
     </div>
 
-    <!-- Block List Section -->
-    <div class="website-section">
-        <div class="section-header">
-            <h3>Block List</h3>
-            <button class="add-current-site-btn" id="add-to-block-btn" title="Add current site to block list">
-                <span class="plus-icon">+</span>
-            </button>
+    <div class="page" id="page-websites">
+        <div id="currentSiteInfo">
+            <p>Current site: <span id="currentSite">Loading...</span></p>
+            <p>Status: <span id="currentSiteStatus">Unknown</span></p>
         </div>
-        <div class="website-list" id="block-list">
-            <!-- Dynamic content will be inserted here -->
+
+        <!-- List Type Selector -->
+        <div class="list-selector">
+            <button class="list-btn active" id="blockListBtn">Block List</button>
+            <button class="list-btn" id="allowListBtn">Allow List</button>
         </div>
-        <div class="empty-state" id="block-empty-state">
-            <p>No blocked websites. Click + to add the current site.</p>
+
+        <!-- Block List Section -->
+        <div class="website-section active" id="blockListSection">
+            <div class="section-header">
+                <h3>Blocked Websites</h3>
+                <button class="add-current-site-btn" id="addToBlockedBtn" title="Add current site to block list">
+                    <span class="plus-icon">+</span>
+                </button>
+            </div>
+            <div class="website-list" id="blockedSitesList">
+                <!-- Dynamic content will be inserted here -->
+            </div>
+            <div class="empty-state" id="block-empty-state">
+                <p>No blocked websites. Click + to add the current site.</p>
+            </div>
+        </div>
+
+        <!-- Allow List Section -->
+        <div class="website-section" id="allowListSection">
+            <div class="section-header">
+                <h3>Allowed Websites</h3>
+                <button class="add-current-site-btn" id="addToAllowedBtn" title="Add current site to allow list">
+                    <span class="plus-icon">+</span>
+                </button>
+            </div>
+            <div class="website-list" id="allowedSitesList">
+                <!-- Dynamic content will be inserted here -->
+            </div>
+            <div class="empty-state" id="allow-empty-state">
+                <p>No allowed websites. Click + to add the current site.</p>
+            </div>
+        </div>
+
+        <!-- Manual URL input -->
+        <div class="url-input-section">
+            <input type="text" id="websiteUrlInput" placeholder="Enter website URL (e.g., facebook.com)">
+            <div class="url-buttons">
+                <button id="blockSiteBtn">Block Site</button>
+                <button id="allowSiteBtn">Allow Site</button>
+            </div>
         </div>
     </div>
-</div>
-    <script src="background.js"></script>
+
+    <!-- Navigation Arrows at Bottom -->
+    <div class="navigation">
+        <button class="nav-arrow" id="leftArrow" disabled>
+            <svg viewBox="0 0 24 24" width="20" height="20">
+                <path fill="currentColor" d="M15.41,16.58L10.83,12L15.41,7.41L14,6L8,12L14,18L15.41,16.58Z"/>
+            </svg>
+        </button>
+
+        <div class="page-indicator">
+            <span class="dot active" data-page="0"></span>
+            <span class="dot" data-page="1"></span>
+        </div>
+
+        <button class="nav-arrow" id="rightArrow">
+            <svg viewBox="0 0 24 24" width="20" height="20">
+                <path fill="currentColor" d="M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z"/>
+            </svg>
+        </button>
+    </div>
+
+    <script src="popup.js"></script>
 </body>
 </html>

@@ -2,22 +2,34 @@
   "manifest_version": 3,
   "name": "Pomodoro extension",
   "version": "0.0.1",
-  "description": "",
-  "action" : {
+  "description": "Pomodoro timer with website blocking",
+  "action": {
     "default_popup": "popup.html"
   },
   "permissions": [
-    "desktopCapture",
     "storage",
     "notifications",
-    "declarativeNetRequest"
+    "declarativeNetRequest",
+    "declarativeNetRequestWithHostAccess",
+    "activeTab",
+    "tabs",
+    "webNavigation"
   ],
   "host_permissions": [
     "https://*/*",
     "http://*/*"
   ],
   "background": {
-    "scripts": ["background.js"]
+    "service_worker": "background.js"
   },
-  "options_page": "options.html"
+  "options_page": "options.html",
+  "declarative_net_request": {
+    "rule_resources": []
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["blocked.html"],
+      "matches": ["<all_urls>"]
+    }
+  ]
 }
