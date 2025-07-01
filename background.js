@@ -1,6 +1,7 @@
 let isStudySessionActive = false;
 let blockedSites = [];
 let allowedSites = [];
+let blockingMode = 'blocklist'; // 'blocklist' or 'allowlist'
 
 // Timer state variables
 let timerState = {
@@ -31,7 +32,7 @@ chrome.runtime.onInstalled.addListener(() => {
 // Load settings and timer state from storage
 function loadSettings() {
     chrome.storage.local.get([
-        'blockedSites', 'allowedSites', 'isRunning', 'isPaused', 'timeLeft',
+        'blockedSites', 'allowedSites', 'blockingMode', 'isRunning', 'isPaused', 'timeLeft',
         'isBreakTime', 'currentMode', 'timerStartTime', 'originalDuration',
         'customStudyTime', 'customShortBreakTime', 'customLongBreakTime'
     ], (result) => {
@@ -39,6 +40,7 @@ function loadSettings() {
 
         blockedSites = result.blockedSites || [];
         allowedSites = result.allowedSites || [];
+        blockingMode = result.blockingMode || 'blocklist';
 
         // Restore timer state
         timerState = {
@@ -150,7 +152,7 @@ function handleTimerComplete() {
         originalDuration: getDefaultTimeForMode(newMode)
     };
 
-    isStudySessionActive = false;
+    updateStudySessionStatus();
 
     // Save new state
     saveTimerState();
@@ -218,7 +220,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             timerState.startTime = Date.now();
             timerState.originalDuration = timerState.timeLeft;
 
-            isStudySessionActive = !timerState.isBreakTime;
+            updateStudySessionStatus();
 
             saveTimerState();
             updateBlockingRules();
@@ -255,7 +257,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             timerState.startTime = null;
             timerState.originalDuration = timerState.timeLeft;
 
-            isStudySessionActive = false;
+            updateStudySessionStatus();
 
             saveTimerState();
             updateBlockingRules();
@@ -273,7 +275,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             timerState.isPaused = false;
             timerState.startTime = null;
 
-            isStudySessionActive = false;
+            updateStudySessionStatus();
 
             saveTimerState();
             updateBlockingRules();
@@ -284,23 +286,36 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         case 'updateWebsiteRules':
             blockedSites = request.blockedSites || [];
             allowedSites = request.allowedSites || [];
-            isStudySessionActive = request.isStudyActive;
+            blockingMode = request.blockingMode || blockingMode;
+
+            // Save website lists and blocking mode to storage
+            chrome.storage.local.set({
+                blockedSites: blockedSites,
+                allowedSites: allowedSites,
+                blockingMode: blockingMode
+            });
+
+            // Don't override isStudySessionActive - it should be based on timer state
+            // isStudySessionActive is controlled by timer state: timerState.isRunning && !timerState.isBreakTime
             updateBlockingRules();
 
             sendResponse({ success: true });
             break;
 
         case 'startStudySession':
-            isStudySessionActive = true;
+            // Update website rules but don't force isStudySessionActive
+            // Let it be controlled by timer state
             blockedSites = request.blockedSites || [];
             allowedSites = request.allowedSites || [];
+            blockingMode = request.blockingMode || blockingMode;
             updateBlockingRules();
 
             sendResponse({ success: true });
             break;
 
         case 'stopStudySession':
-            isStudySessionActive = false;
+            // Update website rules but don't force isStudySessionActive
+            // Let it be controlled by timer state
             updateBlockingRules();
 
             sendResponse({ success: true });
@@ -308,11 +323,21 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
 });
 
+// Helper function to calculate if study session is active
+function updateStudySessionStatus() {
+    const newStatus = timerState.isRunning && !timerState.isBreakTime;
+    if (isStudySessionActive !== newStatus) {
+        console.log('Study session status changed:', isStudySessionActive, '->', newStatus);
+        isStudySessionActive = newStatus;
+    }
+}
+
 // Update declarativeNetRequest rules
 async function updateBlockingRules() {
     try {
         console.log('Updating blocking rules...', {
             isStudySessionActive,
+            blockingMode,
             blockedSites: blockedSites.length,
             allowedSites: allowedSites.length
         });
@@ -328,67 +353,101 @@ async function updateBlockingRules() {
             console.log('Removed existing rules:', ruleIdsToRemove);
         }
 
-        // Only block sites during active study sessions
-        if (!isStudySessionActive) {
-            console.log('Study session not active, no blocking rules added');
-            return;
-        }
-
-        if (blockedSites.length === 0) {
-            console.log('No sites to block');
-            return;
-        }
-
-        // Create blocking rules - filter out allowed sites
-        const sitesToBlock = blockedSites.filter(site => !allowedSites.includes(site));
-
-        if (sitesToBlock.length === 0) {
-            console.log('All blocked sites are in allow list');
+        // Only block sites during active study sessions, not during break time
+        if (!isStudySessionActive || timerState.isBreakTime) {
+            console.log('Study session not active or in break time, no blocking rules added', {
+                isStudySessionActive,
+                isBreakTime: timerState.isBreakTime
+            });
             return;
         }
 
         const rules = [];
+        let sitesToProcess = [];
 
-        sitesToBlock.forEach((site, index) => {
-            // Rule for main domain
-            rules.push({
-                id: (index * 2) + 1,
-                priority: 1,
-                action: {
-                    type: 'redirect',
-                    redirect: {
-                        url: chrome.runtime.getURL('blocked.html')
-                    }
-                },
-                condition: {
-                    urlFilter: `*://${site}/*`,
-                    resourceTypes: ['main_frame']
-                }
-            });
+        if (blockingMode === 'blocklist') {
+            // Blocklist mode: Block only sites in blockedSites that are not in allowedSites
+            sitesToProcess = blockedSites.filter(site => !allowedSites.includes(site));
 
-            // Rule for subdomains
-            rules.push({
-                id: (index * 2) + 2,
-                priority: 1,
-                action: {
-                    type: 'redirect',
-                    redirect: {
-                        url: chrome.runtime.getURL('blocked.html')
+            if (sitesToProcess.length === 0) {
+                console.log('No sites to block in blocklist mode');
+                return;
+            }
+
+            console.log('Blocklist mode: blocking sites:', sitesToProcess);
+        } else if (blockingMode === 'allowlist') {
+            // Allowlist mode: Block everything except sites in allowedSites
+            console.log('Allowlist mode: allowing only sites:', allowedSites);
+
+            // For allowlist mode, we'll rely primarily on the tabs API
+            // because declarativeNetRequest doesn't have a good way to exclude specific domains
+            // from a wildcard pattern. We'll create a broad blocking rule but the tabs API
+            // will handle the fine-grained logic.
+
+            if (allowedSites.length === 0) {
+                // Block everything if no sites are allowed
+                rules.push({
+                    id: 1,
+                    priority: 1,
+                    action: {
+                        type: 'redirect',
+                        redirect: {
+                            url: chrome.runtime.getURL('blocked.html')
+                        }
+                    },
+                    condition: {
+                        urlFilter: '*://*/*',
+                        resourceTypes: ['main_frame']
                     }
-                },
-                condition: {
-                    urlFilter: `*://*.${site}/*`,
-                    resourceTypes: ['main_frame']
-                }
+                });
+            }
+            // Note: For allowlist with specific allowed sites, we rely on the tabs API
+            // because declarativeNetRequest's excludedRequestDomains doesn't work as expected
+        }
+
+        // For blocklist mode, create individual blocking rules
+        if (blockingMode === 'blocklist' && sitesToProcess.length > 0) {
+            sitesToProcess.forEach((site, index) => {
+                // Rule for main domain
+                rules.push({
+                    id: (index * 2) + 1,
+                    priority: 1,
+                    action: {
+                        type: 'redirect',
+                        redirect: {
+                            url: chrome.runtime.getURL('blocked.html')
+                        }
+                    },
+                    condition: {
+                        urlFilter: `*://${site}/*`,
+                        resourceTypes: ['main_frame']
+                    }
+                });
+
+                // Rule for subdomains
+                rules.push({
+                    id: (index * 2) + 2,
+                    priority: 1,
+                    action: {
+                        type: 'redirect',
+                        redirect: {
+                            url: chrome.runtime.getURL('blocked.html')
+                        }
+                    },
+                    condition: {
+                        urlFilter: `*://*.${site}/*`,
+                        resourceTypes: ['main_frame']
+                    }
+                });
             });
-        });
+        }
 
         // Add the rules
         if (rules.length > 0) {
             await chrome.declarativeNetRequest.updateDynamicRules({
                 addRules: rules
             });
-            console.log(`Added ${rules.length} blocking rules for sites:`, sitesToBlock);
+            console.log(`Added ${rules.length} blocking rules in ${blockingMode} mode`);
         }
 
     } catch (error) {
@@ -398,14 +457,38 @@ async function updateBlockingRules() {
 
 // Alternative blocking method using tabs API
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-    if (changeInfo.status === 'complete' && tab.url && isStudySessionActive) {
+    if (changeInfo.status === 'complete' && tab.url) {
+        // Skip chrome:// and extension URLs
+        if (tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://')) {
+            return;
+        }
+
+        // Don't block anything during break time, regardless of study session status
+        if (timerState.isBreakTime) {
+            console.log('Break time active, allowing all sites');
+            return;
+        }
+
+        // Only block during active study sessions
+        if (!isStudySessionActive) {
+            return;
+        }
+
         const hostname = cleanWebsiteURL(tab.url);
+        console.log('Tab updated:', hostname, 'Study active:', isStudySessionActive, 'Break time:', timerState.isBreakTime, 'Mode:', blockingMode);
 
-        console.log('Tab updated:', hostname, 'Study active:', isStudySessionActive);
+        let shouldBlock = false;
 
-        // Check if site should be blocked
-        if (blockedSites.includes(hostname) && !allowedSites.includes(hostname)) {
-            console.log('Blocking site:', hostname);
+        if (blockingMode === 'blocklist') {
+            // Block if site is in blockedSites and not in allowedSites
+            shouldBlock = blockedSites.includes(hostname) && !allowedSites.includes(hostname);
+        } else if (blockingMode === 'allowlist') {
+            // Block if site is NOT in allowedSites
+            shouldBlock = !allowedSites.includes(hostname);
+        }
+
+        if (shouldBlock) {
+            console.log('Blocking site:', hostname, 'in', blockingMode, 'mode');
             chrome.tabs.update(tabId, {
                 url: chrome.runtime.getURL('blocked.html')
             });

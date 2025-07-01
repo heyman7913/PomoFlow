@@ -9,7 +9,7 @@
 
 <body>
     <!-- Main Content Pages -->
-    <div class="page active" id="page-timer">
+    <div class="page" id="page-timer">
         <div class="status-indicator" id="statusIndicator"></div>
         <div class="mode-indicator" id="modeIndicator">Study Time</div>
 
@@ -62,6 +62,20 @@
         <div id="currentSiteInfo">
             <p>Current site: <span id="currentSite">Loading...</span></p>
             <p>Status: <span id="currentSiteStatus">Unknown</span></p>
+        </div>
+
+        <!-- Blocking Mode Toggle -->
+        <div class="blocking-mode-toggle">
+            <div class="toggle-container">
+                <span class="toggle-label">Blocking Mode:</span>
+                <div class="mode-toggle">
+                    <button class="mode-btn active" id="blocklistModeBtn">Blocklist</button>
+                    <button class="mode-btn" id="allowlistModeBtn">Allowlist</button>
+                </div>
+            </div>
+            <div class="mode-description" id="modeDescription">
+                Block only the websites in your block list
+            </div>
         </div>
 
         <!-- List Type Selector -->

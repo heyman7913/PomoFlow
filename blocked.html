@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Site Blocked - Pomodoro Timer</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #23272f 0%, #181a20 100%);
+            color: #e3fcef;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .container {
+            max-width: 500px;
+            padding: 40px;
+            background: rgba(38, 50, 56, 0.9);
+            border-radius: 20px;
+            border: 1px solid rgba(33, 150, 243, 0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+            color: #00bfae;
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #e3fcef;
+        }
+
+        p {
+            font-size: 16px;
+            color: rgba(227, 252, 239, 0.8);
+            line-height: 1.5;
+            margin-bottom: 24px;
+        }
+
+        .timer-info {
+            background: rgba(0, 191, 174, 0.1);
+            border: 1px solid rgba(0, 191, 174, 0.2);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+
+        .timer-info h3 {
+            font-size: 14px;
+            font-weight: 500;
+            color: #00bfae;
+            margin-bottom: 8px;
+        }
+
+        .close-btn {
+            background: linear-gradient(135deg, #00bfae 60%, #1976d2 100%);
+            color: #e3fcef;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .close-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 191, 174, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon">🍅</div>
+        <h1>Site Blocked</h1>
+        <p>This website is blocked during your study session. Stay focused and finish your pomodoro!</p>
+
+        <div class="timer-info">
+            <h3>Study Session Active</h3>
+            <p>Return to your studies and maintain your focus. You can access blocked sites during break time.</p>
+        </div>
+
+        <button class="close-btn" id="closeTabBtn">Close Tab</button>
+    </div>
+
+    <script src="blocked.js"></script>
+</body>
+</html>

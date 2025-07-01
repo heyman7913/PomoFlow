@@ -16,6 +16,7 @@ let customLongBreakTime = 15;
 let blockedSites = [];
 let allowedSites = [];
 let currentTabUrl = '';
+let blockingMode = 'blocklist'; // 'blocklist' or 'allowlist'
 
 // Navigation variables
 let currentPage = 0;
@@ -31,8 +32,20 @@ document.addEventListener('DOMContentLoaded', function() {
     setupWebsiteAccessHandlers();
     setupNavigation();
     setupListSelector();
+    setupBlockingModeToggle();
     setupTimeSettings();
     restoreTimerStateFromBackground();
+
+    // Test navigation after everything is loaded
+    setTimeout(() => {
+        console.log('Testing navigation setup...');
+        const rightArrow = document.getElementById('rightArrow');
+        if (rightArrow) {
+            console.log('Right arrow found, simulating click...');
+            // Test click programmatically
+            rightArrow.click();
+        }
+    }, 2000);
 });
 
 // Get timer state from background script
@@ -120,42 +133,92 @@ function startUITimer() {
 
 // Setup navigation functionality
 function setupNavigation() {
-    const leftArrow = document.getElementById('leftArrow');
-    const rightArrow = document.getElementById('rightArrow');
+    console.log('Setting up navigation...');
 
-    if (leftArrow) {
-        leftArrow.addEventListener('click', () => navigateToPage(currentPage - 1));
-    }
+    // Wait a bit to ensure DOM is fully ready
+    setTimeout(() => {
+        const leftArrow = document.getElementById('leftArrow');
+        const rightArrow = document.getElementById('rightArrow');
+        const pages = document.querySelectorAll('.page');
+        const dots = document.querySelectorAll('.dot');
 
-    if (rightArrow) {
-        rightArrow.addEventListener('click', () => navigateToPage(currentPage + 1));
-    }
+        console.log('Navigation setup - Found elements:', {
+            leftArrow: !!leftArrow,
+            rightArrow: !!rightArrow,
+            pages: pages.length,
+            dots: dots.length,
+            currentPage: currentPage
+        });
 
-    // Setup page indicator dots
-    const dots = document.querySelectorAll('.dot');
-    dots.forEach((dot, index) => {
-        dot.addEventListener('click', () => navigateToPage(index));
-    });
+        if (leftArrow) {
+            leftArrow.addEventListener('click', (e) => {
+                e.preventDefault();
+                console.log('Left arrow clicked, currentPage:', currentPage);
+                if (currentPage > 0) {
+                    navigateToPage(currentPage - 1);
+                }
+            });
+        }
+
+        if (rightArrow) {
+            rightArrow.addEventListener('click', (e) => {
+                e.preventDefault();
+                console.log('Right arrow clicked, currentPage:', currentPage);
+                if (currentPage < pages.length - 1) {
+                    navigateToPage(currentPage + 1);
+                }
+            });
+        }
+
+        // Setup page indicator dots
+        dots.forEach((dot, index) => {
+            dot.addEventListener('click', (e) => {
+                e.preventDefault();
+                console.log('Dot clicked:', index);
+                navigateToPage(index);
+            });
+        });
+
+        // Initial navigation state
+        updateNavigationState();
+    }, 100);
 }
 
 function navigateToPage(pageIndex) {
+    console.log('Navigating to page:', pageIndex);
     const pages = document.querySelectorAll('.page');
     const dots = document.querySelectorAll('.dot');
-    const leftArrow = document.getElementById('leftArrow');
-    const rightArrow = document.getElementById('rightArrow');
 
-    if (pageIndex < 0 || pageIndex >= pages.length) return;
+    console.log('Navigation - Current state:', {
+        requestedPage: pageIndex,
+        currentPage: currentPage,
+        totalPages: pages.length,
+        totalDots: dots.length
+    });
 
+    if (pageIndex < 0 || pageIndex >= pages.length) {
+        console.log('Invalid page index:', pageIndex, 'Valid range: 0 to', pages.length - 1);
+        return;
+    }
+
+    // Update current page
     currentPage = pageIndex;
+    console.log('Updated currentPage to:', currentPage);
 
+    // Update page visibility
     pages.forEach((page, index) => {
         if (index === currentPage) {
+            page.style.display = 'block';
             page.classList.add('active');
+            console.log('Activated page:', index, page.id);
         } else {
+            page.style.display = 'none';
             page.classList.remove('active');
+            console.log('Deactivated page:', index, page.id);
         }
     });
 
+    // Update dot indicators
     dots.forEach((dot, index) => {
         if (index === currentPage) {
             dot.classList.add('active');
@@ -164,8 +227,90 @@ function navigateToPage(pageIndex) {
         }
     });
 
-    if (leftArrow) leftArrow.disabled = currentPage === 0;
-    if (rightArrow) rightArrow.disabled = currentPage === pages.length - 1;
+    // Update navigation button states
+    updateNavigationState();
+
+    console.log('Navigation complete - Current page is now:', currentPage);
+}
+
+function updateNavigationState() {
+    const pages = document.querySelectorAll('.page');
+    const leftArrow = document.getElementById('leftArrow');
+    const rightArrow = document.getElementById('rightArrow');
+
+    console.log('Updating navigation state - currentPage:', currentPage, 'totalPages:', pages.length);
+
+    if (leftArrow) {
+        leftArrow.disabled = currentPage === 0;
+        console.log('Left arrow disabled:', leftArrow.disabled);
+    }
+
+    if (rightArrow) {
+        rightArrow.disabled = currentPage === pages.length - 1;
+        console.log('Right arrow disabled:', rightArrow.disabled);
+    }
+
+    console.log('Navigation state updated:', {
+        currentPage,
+        totalPages: pages.length,
+        leftDisabled: currentPage === 0,
+        rightDisabled: currentPage === pages.length - 1
+    });
+}
+
+// Test navigation function for debugging
+function testNavigation() {
+    console.log('Testing navigation manually...');
+    console.log('Current page before:', currentPage);
+    navigateToPage(1);
+    setTimeout(() => {
+        console.log('Current page after:', currentPage);
+        navigateToPage(0);
+    }, 1000);
+}
+
+// Setup blocking mode toggle
+function setupBlockingModeToggle() {
+    const blocklistModeBtn = document.getElementById('blocklistModeBtn');
+    const allowlistModeBtn = document.getElementById('allowlistModeBtn');
+
+    if (blocklistModeBtn) {
+        blocklistModeBtn.addEventListener('click', () => setBlockingMode('blocklist'));
+    }
+
+    if (allowlistModeBtn) {
+        allowlistModeBtn.addEventListener('click', () => setBlockingMode('allowlist'));
+    }
+}
+
+function setBlockingMode(mode) {
+    blockingMode = mode;
+
+    const blocklistModeBtn = document.getElementById('blocklistModeBtn');
+    const allowlistModeBtn = document.getElementById('allowlistModeBtn');
+    const modeDescription = document.getElementById('modeDescription');
+
+    if (blocklistModeBtn && allowlistModeBtn) {
+        if (mode === 'blocklist') {
+            blocklistModeBtn.classList.add('active');
+            allowlistModeBtn.classList.remove('active');
+            if (modeDescription) {
+                modeDescription.textContent = 'Block only the websites in your block list';
+            }
+        } else {
+            allowlistModeBtn.classList.add('active');
+            blocklistModeBtn.classList.remove('active');
+            if (modeDescription) {
+                modeDescription.textContent = 'Allow only the websites in your allow list (block everything else)';
+            }
+        }
+    }
+
+    // Update current site status to reflect the new mode
+    updateCurrentSiteStatus();
+
+    // Save the blocking mode and update rules
+    saveWebsiteLists();
 }
 
 // Setup list selector
@@ -551,19 +696,50 @@ function getCurrentTabUrl() {
 }
 
 function loadWebsiteLists() {
-    chrome.storage.local.get(['blockedSites', 'allowedSites'], (result) => {
+    chrome.storage.local.get(['blockedSites', 'allowedSites', 'blockingMode'], (result) => {
         blockedSites = result.blockedSites || [];
         allowedSites = result.allowedSites || [];
+        blockingMode = result.blockingMode || 'blocklist';
+
+        // Update the blocking mode toggle without saving
+        updateBlockingModeUI(blockingMode);
+
         renderWebsiteLists();
     });
 }
 
+function updateBlockingModeUI(mode) {
+    const blocklistModeBtn = document.getElementById('blocklistModeBtn');
+    const allowlistModeBtn = document.getElementById('allowlistModeBtn');
+    const modeDescription = document.getElementById('modeDescription');
+
+    if (blocklistModeBtn && allowlistModeBtn) {
+        if (mode === 'blocklist') {
+            blocklistModeBtn.classList.add('active');
+            allowlistModeBtn.classList.remove('active');
+            if (modeDescription) {
+                modeDescription.textContent = 'Block only the websites in your block list';
+            }
+        } else {
+            allowlistModeBtn.classList.add('active');
+            blocklistModeBtn.classList.remove('active');
+            if (modeDescription) {
+                modeDescription.textContent = 'Allow only the websites in your allow list (block everything else)';
+            }
+        }
+    }
+
+    // Update current site status to reflect the mode
+    updateCurrentSiteStatus();
+}
+
 function saveWebsiteLists() {
-    chrome.storage.local.set({blockedSites, allowedSites}, () => {
+    chrome.storage.local.set({blockedSites, allowedSites, blockingMode}, () => {
         chrome.runtime.sendMessage({
             action: 'updateWebsiteRules',
             blockedSites,
             allowedSites,
+            blockingMode,
             isStudyActive: isRunning && !isBreakTime
         });
     });
@@ -732,21 +908,38 @@ function updateCurrentSiteStatus() {
     if (!statusElement || !currentTabUrl) return;
 
     let status = '';
-    if (blockedSites.includes(currentTabUrl)) {
-        status = '🚫 Blocked';
-        statusElement.className = 'site-status blocked';
-    } else if (allowedSites.includes(currentTabUrl)) {
-        status = '✅ Allowed';
-        statusElement.className = 'site-status allowed';
-    } else {
-        status = '⚪ Neutral';
-        statusElement.className = 'site-status neutral';
+    let actualStatus = ''; // What will actually happen during study session
+
+    const isInBlockList = blockedSites.includes(currentTabUrl);
+    const isInAllowList = allowedSites.includes(currentTabUrl);
+
+    if (blockingMode === 'blocklist') {
+        if (isInBlockList && !isInAllowList) {
+            status = '🚫 Will be blocked';
+            actualStatus = 'blocked';
+        } else if (isInAllowList) {
+            status = '✅ Allowed (exception)';
+            actualStatus = 'allowed';
+        } else {
+            status = '⚪ Will be allowed';
+            actualStatus = 'neutral';
+        }
+    } else { // allowlist mode
+        if (isInAllowList) {
+            status = '✅ Will be allowed';
+            actualStatus = 'allowed';
+        } else {
+            status = '🚫 Will be blocked';
+            actualStatus = 'blocked';
+        }
     }
+
+    statusElement.textContent = status;
+    statusElement.className = `site-status ${actualStatus}`;
 
     const showAddButtons = !currentTabUrl.startsWith('chrome://') &&
                           !currentTabUrl.startsWith('chrome-extension://');
 
-    statusElement.textContent = status;
     if (addToBlockedBtn) addToBlockedBtn.style.display = showAddButtons ? 'block' : 'none';
     if (addToAllowedBtn) addToAllowedBtn.style.display = showAddButtons ? 'block' : 'none';
 }
