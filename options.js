@@ -1,27 +1,31 @@
-let button = document.getElementById("requestPermission");
-let video = document.getElementById("video");
+const startBtn = document.getElementById("startBtn");
+const video = document.getElementById("video");
+const statusText = document.getElementById("status");
 
+let model;
 
-button.addEventListener("click", (e) => {
-  console.log("Function called: requestPermissions");
-  navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
-  if (navigator.getUserMedia) {
-    navigator.getUserMedia(
-      { audio: false, video:  true},
-      (stream) => {
-        console.log("Successfully got user media stream");
-        video.srcObject = stream;
-        video.width = 320;   // Set desired width
-        video.height = 180;  // Set desired height
-        video.play();
+startBtn.addEventListener("click", async () => {
+  startBtn.disabled = true;
+  statusText.textContent = "Loading model...";
+  model = await blazeface.load(); // global from the bundle
+  statusText.textContent = "Model loaded. Starting camera...";
 
+  const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+  video.srcObject = stream;
 
-      },
-      (err) => {
-        console.error("Error getting user media stream: ", err);
-      }
-    );
-} else {
-    console.error("getUserMedia is not supported in this browser.");
-}
+  video.addEventListener("loadeddata", () => {
+    detectLoop();
+  });
 });
+
+async function detectLoop() {
+  const prediction = await model.estimateFaces(video, false);
+
+  if (prediction.length > 0) {
+    statusText.textContent = `Face Detected (${prediction.length})`;
+  } else {
+    statusText.textContent = "No face detected";
+  }
+
+  requestAnimationFrame(detectLoop);
+}

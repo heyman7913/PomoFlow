@@ -1,11 +1,16 @@
+<!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
-    <title>Options</title>
+  <title>Face Detector</title>
 </head>
 <body>
-    <button id="requestPermission">Click for Permission Prompt</button>
-    <video id="video" autoplay playsinline></video>
-    <script src="options.js"></script>
+  <h1>Face Detection</h1>
+  <button id="startBtn">Start Camera</button>
+  <video id="video" autoplay muted playsinline width="320" height="180"></video>
+  <p id="status">Status: Not started</p>
+
+  <!-- Load bundled BlazeFace model -->
+  <script src="assets/blazeface.bundle.js"></script>
+  <script src="options.js"></script>
 </body>
 </html>

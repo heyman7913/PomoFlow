@@ -13,7 +13,8 @@
     "declarativeNetRequestWithHostAccess",
     "activeTab",
     "tabs",
-    "webNavigation"
+    "webNavigation",
+    "scripting"
   ],
   "host_permissions": [
     "https://*/*",
@@ -28,7 +29,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["blocked.html", "blocked.js"],
+      "resources": ["blocked.html", "blocked.js", "assets/*"],
       "matches": ["<all_urls>"]
     }
   ]
