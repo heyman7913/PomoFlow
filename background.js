@@ -16,17 +16,35 @@ let timerState = {
 
 let persistentTimer = null;
 
-// Initialize on startup
-chrome.runtime.onStartup.addListener(() => {
-    console.log('Background script starting up...');
-    loadSettings();
-    startPersistentTimer();
-});
+async function ensureOffscreen() {
+  const exists = await chrome.offscreen.hasDocument();
+  console.log("[background] hasDocument:", exists);
+
+  if (!exists) {
+    await chrome.offscreen.createDocument({
+      url: 'offscreen.html',
+      reasons: ['USER_MEDIA'],
+      justification: 'Minimal JS load test'
+    });
+    console.log("[background] offscreen.html created");
+  }
+}
 
 chrome.runtime.onInstalled.addListener(() => {
     console.log('Extension installed/updated...');
     loadSettings();
     startPersistentTimer();
+    console.log("[background] onInstalled triggered");
+    ensureOffscreen();
+});
+
+// Initialize on startup
+chrome.runtime.onStartup.addListener(() => {
+    console.log('Background script starting up...');
+    loadSettings();
+    startPersistentTimer();
+    console.log("[background] onStartup triggered");
+    ensureOffscreen();
 });
 
 // Load settings and timer state from storage
