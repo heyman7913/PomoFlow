@@ -2,6 +2,7 @@ let isStudySessionActive = false;
 let blockedSites = [];
 let allowedSites = [];
 let blockingMode = 'blocklist'; // 'blocklist' or 'allowlist'
+let lastFaceStatus = null;
 
 // Timer state variables
 let timerState = {
@@ -341,6 +342,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
 });
 
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  // offscreen.js sends { type: "FACE_DETECTED" | "NO_FACE" }
+  if (msg.type === 'FACE_DETECTED' || msg.type === 'NO_FACE') {
+    handleFaceStatus(msg.type);
+    return;                       // allow other listeners to run too
+  }
+});
+
 // Helper function to calculate if study session is active
 function updateStudySessionStatus() {
     const newStatus = timerState.isRunning && !timerState.isBreakTime;
@@ -348,6 +357,40 @@ function updateStudySessionStatus() {
         console.log('Study session status changed:', isStudySessionActive, '->', newStatus);
         isStudySessionActive = newStatus;
     }
+}
+
+function handleFaceStatus(status) {
+  // Ignore camera updates outside study mode
+  if (timerState.currentMode !== 'study') {
+    if (lastFaceStatus !== null) {
+      console.log('[background] Not in study mode → ignoring face events');
+      lastFaceStatus = null;
+    }
+    return;
+  }
+
+  if (status === 'FACE_DETECTED') {
+    if (lastFaceStatus !== 'FACE_DETECTED') {
+      console.log('[background] Face detected → resuming timer');
+      if (timerState.isRunning && timerState.isPaused) {
+        timerState.isPaused = false;
+        // shift startTime so elapsed stays correct
+        timerState.startTime = Date.now() -
+          (timerState.originalDuration - timerState.timeLeft) * 1000;
+        saveTimerState();
+      }
+      lastFaceStatus = 'FACE_DETECTED';
+    }
+  } else if (status === 'NO_FACE') {
+    if (lastFaceStatus !== 'NO_FACE') {
+      console.log('[background] No face detected → pausing timer');
+      if (timerState.isRunning && !timerState.isPaused) {
+        timerState.isPaused = true;
+        saveTimerState();
+      }
+      lastFaceStatus = 'NO_FACE';
+    }
+  }
 }
 
 // Update declarativeNetRequest rules
