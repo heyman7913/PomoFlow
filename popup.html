@@ -10,12 +10,12 @@
 <body>
     <!-- Main Content Pages -->
     <div class="page" id="page-timer">
-        <div class="status-indicator" id="statusIndicator"></div>
         <div class="mode-indicator" id="modeIndicator">Study Time</div>
 
         <div class="timer-circle" id="timerCircle">
             <div id="timerDisplay">25:00</div>
         </div>
+        <div class="status-indicator" id="statusIndicator"></div>
 
         <div id="statusText">Ready to start</div>
 
@@ -55,6 +55,15 @@
                 </div>
             </div>
             <button id="saveTimeSettings" class="save-settings-btn">Save Settings</button>
+        </div>
+
+        <!-- Place this button where you want, e.g., below the timer or at the bottom above navigation -->
+        <div class="camera-toggle-section" style="text-align:center; margin: 16px 0;">
+            <label class="switch">
+                <input type="checkbox" id="toggleCameraSwitch">
+                <span class="slider"></span>
+            </label>
+            <span id="cameraSwitchLabel" style="margin-left: 12px; color: #4dd0e1; font-weight: 500;">Allow Camera Access</span>
         </div>
     </div>
 

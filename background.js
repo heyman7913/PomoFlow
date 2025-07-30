@@ -3,6 +3,7 @@ let blockedSites = [];
 let allowedSites = [];
 let blockingMode = 'blocklist'; // 'blocklist' or 'allowlist'
 let lastFaceStatus = null;
+let userStartedTimer = false;
 
 // Timer state variables
 let timerState = {
@@ -16,6 +17,7 @@ let timerState = {
 };
 
 let persistentTimer = null;
+let cameraEnabled = true; // Default ON
 
 async function ensureOffscreen() {
   const exists = await chrome.offscreen.hasDocument();
@@ -29,6 +31,15 @@ async function ensureOffscreen() {
     });
     console.log("[background] offscreen.html created");
   }
+}
+
+// Helper to close offscreen document if it exists
+async function closeOffscreen() {
+    const exists = await chrome.offscreen.hasDocument();
+    if (exists) {
+        await chrome.offscreen.closeDocument();
+        console.log("[background] offscreen.html closed");
+    }
 }
 
 chrome.runtime.onInstalled.addListener(() => {
@@ -171,6 +182,8 @@ function handleTimerComplete() {
         originalDuration: getDefaultTimeForMode(newMode)
     };
 
+    userStartedTimer = false;
+
     updateStudySessionStatus();
 
     // Save new state
@@ -210,12 +223,16 @@ function getDefaultTimeForMode(mode) {
 
 // Notify popup of events
 function notifyPopup(action, data = {}) {
+    console.log(`[background] Notifying popup: ${action}`, data);
     chrome.runtime.sendMessage({
         action: action,
         ...data
-    }).catch(() => {
-        // Popup not open, ignore error
-        console.log('Popup not open, cannot send message:', action);
+    }).catch((err) => {
+        if (err.message.includes('Receiving end does not exist')) {
+            console.log('[background] Popup is not open, skipping message.');
+        } else {
+            console.error('[background] Error sending message to popup:', err);
+        }
     });
 }
 
@@ -238,6 +255,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             timerState.isPaused = false;
             timerState.startTime = Date.now();
             timerState.originalDuration = timerState.timeLeft;
+            userStartedTimer = true; // <--- Add this line
 
             updateStudySessionStatus();
 
@@ -275,6 +293,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             timerState.timeLeft = request.newTimeLeft || getDefaultTimeForMode(timerState.currentMode);
             timerState.startTime = null;
             timerState.originalDuration = timerState.timeLeft;
+            userStartedTimer = false;
 
             updateStudySessionStatus();
 
@@ -339,15 +358,30 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
             sendResponse({ success: true });
             break;
+
+        case 'enableCamera':
+            cameraEnabled = true;
+            chrome.storage.local.set({ cameraEnabled: true });
+            ensureOffscreen();
+            sendResponse({ success: true });
+            break;
+        case 'disableCamera':
+            cameraEnabled = false;
+            chrome.storage.local.set({ cameraEnabled: false });
+            closeOffscreen();
+            // Simulate face always detected when camera is off
+            handleFaceStatus('FACE_DETECTED');
+            sendResponse({ success: true });
+            break;
     }
 });
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-  // offscreen.js sends { type: "FACE_DETECTED" | "NO_FACE" }
-  if (msg.type === 'FACE_DETECTED' || msg.type === 'NO_FACE') {
-    handleFaceStatus(msg.type);
-    return;                       // allow other listeners to run too
-  }
+    if (msg.type === 'FACE_DETECTED' || msg.type === 'NO_FACE') {
+        handleFaceStatus(msg.type);
+        sendResponse({ success: true }); // Send acknowledgment to offscreen.js
+        return true; // Keep the message port open for asynchronous responses
+    }
 });
 
 // Helper function to calculate if study session is active
@@ -360,36 +394,28 @@ function updateStudySessionStatus() {
 }
 
 function handleFaceStatus(status) {
-  // Ignore camera updates outside study mode
-  if (timerState.currentMode !== 'study') {
-    if (lastFaceStatus !== null) {
-      console.log('[background] Not in study mode → ignoring face events');
-      lastFaceStatus = null;
-    }
-    return;
+  if (!cameraEnabled) {
+    status = 'FACE_DETECTED';
   }
+  // Only allow face detection to resume timer if user started it
+  if (status === 'FACE_DETECTED' && !timerState.isRunning && userStartedTimer) {
+    console.log("[background] Face detected, resuming timer...");
+    timerState.isRunning = true;
+    timerState.isPaused = false;
+    saveTimerState();
 
-  if (status === 'FACE_DETECTED') {
-    if (lastFaceStatus !== 'FACE_DETECTED') {
-      console.log('[background] Face detected → resuming timer');
-      if (timerState.isRunning && timerState.isPaused) {
-        timerState.isPaused = false;
-        // shift startTime so elapsed stays correct
-        timerState.startTime = Date.now() -
-          (timerState.originalDuration - timerState.timeLeft) * 1000;
-        saveTimerState();
-      }
-      lastFaceStatus = 'FACE_DETECTED';
-    }
-  } else if (status === 'NO_FACE') {
-    if (lastFaceStatus !== 'NO_FACE') {
-      console.log('[background] No face detected → pausing timer');
-      if (timerState.isRunning && !timerState.isPaused) {
-        timerState.isPaused = true;
-        saveTimerState();
-      }
-      lastFaceStatus = 'NO_FACE';
-    }
+    // Notify the popup to update the UI
+    notifyPopup('timerResumed', { timeLeft: timerState.timeLeft });
+    console.log("[background] Sent 'timerResumed' message to popup");
+  } else if (status === 'NO_FACE' && timerState.isRunning) {
+    console.log("[background] No face detected, pausing timer...");
+    timerState.isRunning = false;
+    timerState.isPaused = true;
+    saveTimerState();
+
+    // Notify the popup to update the UI
+    notifyPopup('timerPaused', { timeLeft: timerState.timeLeft });
+    console.log("[background] Sent 'timerPaused' message to popup");
   }
 }
 

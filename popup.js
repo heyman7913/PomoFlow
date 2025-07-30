@@ -48,6 +48,25 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 2000);
 });
 
+document.addEventListener('DOMContentLoaded', () => {
+    console.log("[popup] Requesting current timer state from background...");
+    chrome.runtime.sendMessage({ action: 'getTimerState' }, (response) => {
+        if (response && response.success) {
+            console.log("[popup] Received timer state from background:", response.timerState);
+            timeLeft = response.timerState.timeLeft;
+            isRunning = response.timerState.isRunning;
+            isPaused = response.timerState.isPaused;
+            isBreakTime = response.timerState.isBreakTime;
+            currentMode = response.timerState.currentMode;
+
+            updateDisplay(); // Update the timer display
+            updateStatus();  // Update the status text
+        } else {
+            console.error("[popup] Failed to retrieve timer state from background");
+        }
+    });
+});
+
 // Get timer state from background script
 function restoreTimerStateFromBackground() {
     console.log('Getting timer state from background...');
@@ -374,6 +393,30 @@ function initPopup() {
 
     if (addToBlockedBtn) addToBlockedBtn.addEventListener('click', addCurrentSiteToBlocked);
     if (addToAllowedBtn) addToAllowedBtn.addEventListener('click', addCurrentSiteToAllowed);
+
+    // Add this line to ensure the toggle is set up after DOM is ready
+    setupCameraToggle();
+}
+
+function setupCameraToggle() {
+    const toggleCameraSwitch = document.getElementById('toggleCameraSwitch');
+    const cameraSwitchLabel = document.getElementById('cameraSwitchLabel');
+
+    // Load saved state (default ON)
+    chrome.storage.local.get({ cameraEnabled: true }, (result) => {
+        toggleCameraSwitch.checked = !!result.cameraEnabled;
+        cameraSwitchLabel.textContent = result.cameraEnabled ? 'Camera Enabled' : 'Camera Disabled';
+    });
+
+    toggleCameraSwitch.addEventListener('change', () => {
+        const enabled = toggleCameraSwitch.checked;
+        cameraSwitchLabel.textContent = enabled ? 'Camera On' : 'Camera Off';
+        chrome.storage.local.set({ cameraEnabled: enabled }, () => {
+            // Optionally, you can confirm save here
+            console.log('[popup] Camera state saved:', enabled);
+        });
+        chrome.runtime.sendMessage({ action: enabled ? 'enableCamera' : 'disableCamera' });
+    });
 }
 
 // Timer functions that communicate with background
@@ -504,42 +547,41 @@ function setupTimeSettings() {
     if (studyTimeInput) {
         studyTimeInput.addEventListener('input', () => {
             customStudyTime = parseInt(studyTimeInput.value) || 25;
-            saveCustomTimes();
             updateModeButtons();
-            if (!isRunning && currentMode === 'study') {
-                timeLeft = customStudyTime * 60;
-                updateDisplay();
-            }
         });
     }
 
     if (shortBreakTimeInput) {
         shortBreakTimeInput.addEventListener('input', () => {
             customShortBreakTime = parseInt(shortBreakTimeInput.value) || 5;
-            saveCustomTimes();
             updateModeButtons();
-            if (!isRunning && currentMode === 'shortBreak') {
-                timeLeft = customShortBreakTime * 60;
-                updateDisplay();
-            }
         });
     }
 
     if (longBreakTimeInput) {
         longBreakTimeInput.addEventListener('input', () => {
             customLongBreakTime = parseInt(longBreakTimeInput.value) || 15;
-            saveCustomTimes();
             updateModeButtons();
-            if (!isRunning && currentMode === 'longBreak') {
-                timeLeft = customLongBreakTime * 60;
-                updateDisplay();
-            }
         });
     }
 
     if (saveSettingsBtn) {
         saveSettingsBtn.addEventListener('click', () => {
             saveCustomTimes();
+
+            // Always apply new time to current session
+            let newTime = getDefaultTimeForMode(currentMode);
+            timeLeft = newTime;
+            updateDisplay();
+            chrome.runtime.sendMessage({
+                action: 'resetTimer',
+                newTimeLeft: newTime
+            }, (response) => {
+                // If timer is running, restart UI timer
+                if (isRunning && !isPaused) {
+                    startUITimer();
+                }
+            });
 
             // Visual feedback
             const originalText = saveSettingsBtn.textContent;
@@ -595,70 +637,80 @@ function getDefaultTimeForMode(mode) {
 function updateDisplay() {
     const minutes = Math.floor(timeLeft / 60);
     const seconds = timeLeft % 60;
-    const display = document.getElementById('timerDisplay');
-    if (display) {
-        display.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    const timerDisplay = document.getElementById('timerDisplay');
+    if (timerDisplay) {
+        timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        console.log(`[popup] Timer display updated: ${timerDisplay.textContent}`);
+    } else {
+        console.error("[popup] Timer display element not found");
     }
 }
 
-function updateStatus() {
-    const startPauseBtn = document.getElementById('startPauseBtn');
-    const statusText = document.getElementById('statusText');
-    const modeIndicator = document.getElementById('modeIndicator');
-
-    if (startPauseBtn) {
-        if (isRunning && !isPaused) {
-            startPauseBtn.textContent = 'Pause';
-        } else if (isPaused) {
-            startPauseBtn.textContent = 'Resume';
-        } else {
-            startPauseBtn.textContent = 'Start';
-        }
+function updateStatus(forceStartLabel = false) {
+  const startPauseBtn = document.getElementById('startPauseBtn');
+  if (startPauseBtn) {
+    if (forceStartLabel) {
+      startPauseBtn.textContent = 'Start';
+    } else if (isRunning && !isPaused) {
+      startPauseBtn.textContent = 'Pause';
+    } else if (isPaused) {
+      startPauseBtn.textContent = 'Resume';
+    } else {
+      startPauseBtn.textContent = 'Start';
     }
+  }
 
-    if (statusText) {
-        let status = '';
-        if (isRunning && !isPaused) {
-            status = isBreakTime ? 'Break Time' : 'Focus Time';
-        } else if (isPaused) {
-            status = 'Paused';
-        } else {
-            status = 'Ready to start';
-        }
-        statusText.textContent = status;
-    }
+  const statusText = document.getElementById('statusText');
 
-    if (modeIndicator) {
-        let modeText = '';
-        switch(currentMode) {
-            case 'study': modeText = 'Study Time'; break;
-            case 'shortBreak': modeText = 'Short Break'; break;
-            case 'longBreak': modeText = 'Long Break'; break;
-        }
-        modeIndicator.textContent = modeText;
+  if (statusText) {
+    let status = '';
+    if (isRunning && !isPaused) {
+      status = isBreakTime ? 'Break Time' : 'Focus Time';
+    } else if (isPaused) {
+      status = 'Paused';
+    } else {
+      status = 'Ready to start';
     }
+    statusText.textContent = status;
+    console.log(`[popup] Status text updated: ${status}`);
+  } else {
+    console.error("[popup] Status text element not found");
+  }
 }
 
 function updateTimerCircleStatus() {
     const timerCircle = document.getElementById('timerCircle');
     const statusIndicator = document.getElementById('statusIndicator');
 
+    console.log("[popup] Updating timer circle status...");
     if (timerCircle) {
         timerCircle.className = 'timer-circle';
         if (isRunning && !isPaused) {
             timerCircle.classList.add('running');
+            console.log("[popup] Timer circle set to 'running'");
         } else if (isPaused) {
             timerCircle.classList.add('paused');
+            console.log("[popup] Timer circle set to 'paused'");
+        } else {
+            console.log("[popup] Timer circle set to default state");
         }
+    } else {
+        console.error("[popup] Timer circle element not found");
     }
 
     if (statusIndicator) {
         statusIndicator.className = 'status-indicator';
         if (isRunning && !isPaused) {
             statusIndicator.classList.add('running');
+            console.log("[popup] Status indicator set to 'running'");
         } else if (isPaused) {
             statusIndicator.classList.add('paused');
+            console.log("[popup] Status indicator set to 'paused'");
+        } else {
+            console.log("[popup] Status indicator set to default state");
         }
+    } else {
+        console.error("[popup] Status indicator element not found");
     }
 }
 
@@ -959,11 +1011,28 @@ function cleanWebsiteURL(url) {
 }
 
 // Listen for messages from background script
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.action === 'timerComplete') {
-        // Refresh state from background
-        restoreTimerStateFromBackground();
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    console.log("[popup] Received message from background:", message);
+
+    if (message.action === 'timerResumed') {
+        console.log("[popup] Timer resumed, updating UI...");
+        timeLeft = message.timeLeft; // Update the local timeLeft variable
+        isRunning = true;
+        isPaused = false;
+        updateDisplay(); // Function to refresh the timer display
+        updateStatus();  // Function to refresh the status text
+        updateTimerCircleStatus(); // Ensure circle timer is updated
     }
-});
+
+    if (message.action === 'timerPaused') {
+        console.log("[popup] Timer paused, updating UI...");
+        timeLeft = message.timeLeft; // Update the local timeLeft variable
+        isRunning = false;
+        isPaused = true;
+        updateDisplay();
+        updateStatus();  // Function to refresh the status text
+        updateTimerCircleStatus(); // Ensure circle timer is updated
+    }
+}); // Closing the event listener block
 
 console.log('Popup script loaded');
