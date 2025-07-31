@@ -35,17 +35,6 @@ document.addEventListener('DOMContentLoaded', function() {
     setupBlockingModeToggle();
     setupTimeSettings();
     restoreTimerStateFromBackground();
-
-    // Test navigation after everything is loaded
-    setTimeout(() => {
-        console.log('Testing navigation setup...');
-        const rightArrow = document.getElementById('rightArrow');
-        if (rightArrow) {
-            console.log('Right arrow found, simulating click...');
-            // Test click programmatically
-            rightArrow.click();
-        }
-    }, 2000);
 });
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -275,17 +264,6 @@ function updateNavigationState() {
         leftDisabled: currentPage === 0,
         rightDisabled: currentPage === pages.length - 1
     });
-}
-
-// Test navigation function for debugging
-function testNavigation() {
-    console.log('Testing navigation manually...');
-    console.log('Current page before:', currentPage);
-    navigateToPage(1);
-    setTimeout(() => {
-        console.log('Current page after:', currentPage);
-        navigateToPage(0);
-    }, 1000);
 }
 
 // Setup blocking mode toggle
