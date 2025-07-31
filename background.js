@@ -132,6 +132,7 @@ function startPersistentTimer() {
     if (persistentTimer) clearInterval(persistentTimer);
 
     persistentTimer = setInterval(() => {
+        console.log('[TICK]', timerState.isRunning, timerState.isPaused, timerState.timeLeft);
         if (timerState.isRunning && !timerState.isPaused) {
             // Calculate actual time left based on start time
             if (timerState.startTime) {
@@ -402,6 +403,8 @@ function handleFaceStatus(status) {
     console.log("[background] Face detected, resuming timer...");
     timerState.isRunning = true;
     timerState.isPaused = false;
+    timerState.originalDuration = timerState.timeLeft; // <-- resume from frozen value
+    timerState.startTime = Date.now();                // <-- reset start time
     saveTimerState();
 
     // Notify the popup to update the UI
@@ -409,6 +412,11 @@ function handleFaceStatus(status) {
     console.log("[background] Sent 'timerResumed' message to popup");
   } else if (status === 'NO_FACE' && timerState.isRunning) {
     console.log("[background] No face detected, pausing timer...");
+    // Before pausing, update timeLeft to the current value
+    if (timerState.startTime) {
+      const elapsed = Math.floor((Date.now() - timerState.startTime) / 1000);
+      timerState.timeLeft = Math.max(0, timerState.originalDuration - elapsed);
+    }
     timerState.isRunning = false;
     timerState.isPaused = true;
     saveTimerState();
