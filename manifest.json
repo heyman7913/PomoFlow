@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Pomodoro Timer",
+  "name": "PomoFlow",
   "version": "1.0.0",
-  "description": "Pomodoro timer with website blocking",
+  "description": "Turn your study time into pure, uninterrupted focus with PomoFlow. Combining the proven Pomodoro Technique with smart website blocking and real-time face detection, this extension ensures that every minute counts—pausing your timer the moment you look away and resuming only when you’re back at the screen.",
   "action": {
     "default_popup": "popup.html"
   },
