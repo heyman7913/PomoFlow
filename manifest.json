@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "PomoFlow",
   "version": "1.0.0",
-  "description": "Turn your study time into pure, uninterrupted focus with PomoFlow. Combining the proven Pomodoro Technique with smart website blocking and real-time face detection, this extension ensures that every minute counts—pausing your timer the moment you look away and resuming only when you’re back at the screen.",
+  "description": "PomoFlow - because every second of focus counts. Time your work, block distractions, and track your presence.",
   "action": {
     "default_popup": "popup.html"
   },
